@@ -29,7 +29,34 @@ def download(text):
     href = f'<a href="data:file/csv;base64,{b64}" download="summarize.txt" target="_blank">Download</a>'
     return href
 
+import base64
+import warnings
 
+import streamlit as st
+
+from api import sitemap_to_df, status
+from utility import stqdm
+
+warnings.filterwarnings("ignore")
+
+stqdm.pandas()
+
+
+def sitemap():
+    url = st.text_area(
+        "Enter URL",
+    )
+    if st.button("Analyze", help='summarize'):
+        if url:
+            data = sitemap_to_df(url, recursive=False)
+#             data = data.sample(10).reset_index(drop=True)
+            data['status'] = data['loc'].progress_apply(lambda x: status(str(x)))
+            st.markdown(download(data[['loc', 'status']].to_csv()), unsafe_allow_html=True)
+        else:
+            st.markdown("# :anger:")
+            st.text('No URL to Analyze')
+            
+            
 def summarization(API_URL, headers):
     text = st.text_area(
         "Enter text",
@@ -187,7 +214,7 @@ def main():
         # st.sidebar.code(f'TOTAL USED : {str(response["used"])}')
         # st.sidebar.code(f'TOTAL AVAILABLE : {str(response["available"] - response["used"])}')
         name = st.sidebar.selectbox("TASK", ('Summarization', 'TextGeneration', 'Question Answering',
-                                             'FILL MASK', 'Backlink'))
+                                             'FILL MASK', 'Backlink', 'sitemap'))
         st.title(f"{name}")
         if name == 'Summarization':
             API_URL = "https://api-inference.huggingface.co/models/facebook/bart-large-cnn"
@@ -204,6 +231,8 @@ def main():
             FILL_MASK_INFO()
         elif name == 'Backlink':
             Backlink()
+        elif name =='sitemap':
+            sitemap()
         st.markdown('# `USAGE`')
     else:
         st.markdown('# SERVICE IS DOWN')
